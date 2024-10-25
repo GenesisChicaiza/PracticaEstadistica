@@ -139,12 +139,7 @@ lambda = 1
   shutdown_sims = pmax(maquina1, maquina2, maquina3)
   
 
-  hist(shutdown_sims, probability = TRUE, breaks = 50,
-       main = "Distribución simulada de T_fallo",
-       xlab = "Tiempo hasta fallo del sistema")
-  
-  curve(3 * (1 - exp(-x))^2 * exp(-x), col = "red", add = TRUE, lwd = 2)
-```
+  ```
 
 b. Estima la distribución a partir de las simulaciones usando un **histograma** 
    (función `hist`; consulta la ayuda para dibujar una densidad de probabilidad 
@@ -189,9 +184,9 @@ f_theo <- function(t) {
 num_simulaciones <- 10000
   lambda <- 1
 
-maquina1 = rexp(num_Simulaciones, lambda)
-maquina2 = rexp(num_Simulaciones, lambda)
-maquina3 = rexp(num_Simulaciones, lambda)
+maquina1 = rexp(num_simulaciones, lambda)
+maquina2 = rexp(num_simulaciones, lambda)
+maquina3 = rexp(num_simulaciones, lambda)
 
 shutdown_sims = pmax(maquina1, maquina2, maquina3)
 
@@ -199,13 +194,11 @@ hist(shutdown_sims, probability = TRUE, breaks = 50,
      main = "Distribución simulada de T_fallo",
      xlab = "Tiempo hasta fallo del sistema",)
 
-curve(f_densidad(x), from = 0, to = max(shutdown_sims), 
+curve(f_theo(x), from = 0, to = max(shutdown_sims), 
       col = "red", lwd = 2, add = TRUE)
 
 
-
-
-# ...
+ ...
 ```
 
 
@@ -228,7 +221,7 @@ simulate_empty = function(n_serv, n_datablocks) {
    
     serv_vacios = n_serv - length(contar_serv)
     
-    return(serv_vacios)
+    serv_vacios
 }
 
 n_serv = 10
@@ -347,7 +340,38 @@ En un sistema de casa inteligente, el consumo diario de energía de los disposit
 a. Escribe una función `simulate_all(n_sims)` que genere simulaciones para las tres variables aleatorias $D$, $H$ y $E$. Asegúrate de que el resultado final sea una matriz de dimensiones `n_sims x 3` utilizando `cbind`, y evita usar `replicate` por eficiencia. Para simular de forma eficiente la variable $E$, piensa antes en el siguiente caso particular: Si hay $D=5$ dispositivos y $H=3$ dispositivos de "alta energía", escribe la distribución de la variable aleatoria $E$:
 
 ```{r smarthome_i}
-# ?????
+simulate_all = function(n_sims){
+  d = rpois(n_sims, 10)
+  h = rbinom(n_sims, d, 0.6)
+  
+  e_high = mapply(function(h){
+    if(h>0){
+      sum(rnorm(h, 6, 0.75))
+    }else{
+      0
+    }
+  }, h)
+  
+  d_normal = d - h
+  e_normal = mapply(function(dn){
+    if (dn > 0){
+      sum(rnorm(dn, 4, 0.75))
+    } else {
+      0
+    }
+  }, d_normal)
+  e = e_high + e_normal 
+  
+  resultados = cbind(d, h, e)
+  colnames(resultados) = c("d", "h", "e")
+  
+  return(resultados)
+}
+
+
+
+
+
 ```
 
 b. Como $D$ no es relevante para tu objetivo final, puedes marginalizarlo. 
@@ -358,7 +382,32 @@ y pegar código es un crimen contra la humanidad penado por los tribunales
 internacionales.)
 
 ```{r smarthome_ii}
-# ??????????
+sim_h_e = function(n_sims){
+  d = rpois(n_sims, 10)
+  h = rbinom(n_sims, d, 0.6)
+  
+  e_high = mapply(function(h){
+    if(h>0){
+      sum(rnorm(h, 6, 0.75))
+    }else{
+      0
+    }
+  }, h)
+  d_normal = d - h
+  e_normal = mapply(function(dn){
+    if (dn > 0){
+      sum(rnorm(dn, 4, 0.75))
+    } else {
+      0
+    }
+  }, d_normal)
+  e = e_high + e_normal 
+  
+  resultados = cbind(h, e)
+  colnames(resultados) = c("h", "e")
+  
+  return(resultados)
+  }
 ```
 
 c. Imaginemos que el consumo total de energía $E$ está entre `low_e` y `high_e`. Para estimar $H$ a partir de esta información, calcularemos la probabilidad condicional $P(H=h|low\_e < E < high\_e)$. Crea una función `p_h_given_e(h, low_e, high_e, n_sims=10000)` para calcular esta probabilidad condicional utilizando simulaciones.
